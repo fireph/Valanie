@@ -22,9 +22,23 @@
             color: #eee;
             top: 10px;
             left: 10px;
-            background-color: #555;
+            background-color: #333;
             border-radius: 8px;
             padding: 10px;
+        }
+
+        #overlay2 {
+            position: absolute;
+            width: 300px;
+            opacity: 0;
+            color: #eee;
+            top: 10px;
+            right: 10px;
+            background-color: #333;
+            border-radius: 8px;
+            padding: 10px;
+            transition: opacity 0.5s;
+            -webkit-transition: opacity 0.5s;
         }
    </style>
 </head>
@@ -33,6 +47,7 @@
     <div class="overlay">
         Find the glasses and click them to win! Who knows where they'll be next!
     </div>
+    <div id="overlay2"></div>
     <script src="three.min.js"></script>
     <script src="BinaryLoader.js"></script>
     <script src="MTLLoader.js"></script>
@@ -45,6 +60,12 @@
         var time = Date.now();
 
         var oldSpot;
+
+        var hearts = [];
+
+        var heartGeo;
+
+        var overlay2 = document.getElementById("overlay2");
 
         var locations = [
             {
@@ -64,6 +85,22 @@
             {
                 position: [0, 0, -150],
                 rotation: [0,0,0]
+            },
+            {
+                position: [470, 0, 470],
+                rotation: [0,0,0]
+            },
+            {
+                position: [-470, 0, 470],
+                rotation: [0,0,0]
+            },
+            {
+                position: [0, 120, -470],
+                rotation: [0,0,-0.25]
+            },
+            {
+                position: [350, 0, -580],
+                rotation: [-1.5,Math.PI/2,0]
             }
         ]
 
@@ -73,7 +110,7 @@
         function init() {
 
             camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-            camera.position.set(200,200,0);
+            camera.position.set(750,850,300);
             controls = new THREE.OrbitControls( camera );
 
             scene = new THREE.Scene();
@@ -195,6 +232,12 @@
                 scene.add(obj);
             });
 
+            loader2.load('heart.obj', function(obj) {
+                var geo = obj.children[0].geometry;
+                geo.computeVertexNormals();
+                heartGeo = geo;
+            });
+
             var geometryBottom = new THREE.PlaneGeometry(1200,1200);
             var texture = THREE.ImageUtils.loadTexture(  "carpet.jpg" );
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -275,7 +318,19 @@
                 if (glasses) {
                     var intersects = raycaster.intersectObjects([glasses], true);
                     if (intersects.length > 0) {
-                        alert('YOU FOUND THEM!!!');
+                        if (heartGeo) {
+                            var newObj = new THREE.Mesh(heartGeo, new THREE.MeshPhongMaterial({color: 0xff0000}));
+                            newObj.scale.set(0.005,0.005,0.005);
+                            newObj.position.copy(glasses.position);
+                            newObj.position.y += 70;
+                            scene.add(newObj);
+                            hearts.push(newObj);
+                            overlay2.innerHTML = "God damn you're amazing, you found your glasses!";
+                            overlay2.style.opacity = 1;
+                            setTimeout(function() {
+                                overlay2.style.opacity = 0;
+                            }, 2500);
+                        }
                         moveGlasses();
                     }
                 }
@@ -295,6 +350,16 @@
 
             // note: three.js includes requestAnimationFrame shim
             requestAnimationFrame( animate );
+
+            for (var i = 0; i < hearts.length; i++) {
+                hearts[i].rotation.y += 0.1;
+                hearts[i].position.y += 1;
+                hearts[i].scale.multiplyScalar(0.97);
+                if (hearts[i].scale.x < 0.005*0.01) {
+                    scene.remove(hearts[i]);
+                    hearts.splice(i, 1);
+                }
+            }
 
             controls.update();
 
