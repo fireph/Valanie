@@ -1,0 +1,291 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+   <title>Happy Valentine's Day!</title>
+   <style type="text/css">
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background-color: #ffffff;
+            margin: 0;
+            overflow: hidden;
+            font-family: arial;
+        }
+   </style>
+</head>
+
+<body>
+    <script src="three.min.js"></script>
+    <script src="BinaryLoader.js"></script>
+    <script src="MTLLoader.js"></script>
+    <script src="OBJLoader.js"></script>
+    <script src="OBJMTLLoader.js"></script>
+    <script src="OrbitControls.js"></script>
+    <script>
+
+        var camera, scene, renderer, controls, projector, glasses;
+        var time = Date.now();
+
+        var oldSpot;
+
+        var locations = [
+            {
+                position: [380, 130, -510],
+                rotation: [0,0,0]
+
+            },
+            {
+                position: [-320, 130, -510],
+                rotation: [0,0,0]
+
+            },
+            {
+                position: [150, 144, 510],
+                rotation: [0.2,0,-0.5]
+            }
+        ]
+
+        init();
+        animate();
+
+        function init() {
+
+            camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+            camera.position.set(200,200,0);
+            controls = new THREE.OrbitControls( camera );
+
+            scene = new THREE.Scene();
+
+            projector = new THREE.Projector();
+
+            var lightPoint = new THREE.PointLight( 0xffffff, 1, 2000);
+            lightPoint.position.set(-470, 400, -470);
+            scene.add(lightPoint);
+
+            var lightPoint2 = new THREE.PointLight( 0xffffff, 1, 2000);
+            lightPoint2.position.set(470, 400, -470);
+            scene.add(lightPoint2);
+
+            var light = new THREE.DirectionalLight( 0xffffff, 0 );
+            light.castShadow = true;
+            // light.shadowCameraVisible = true;
+
+            light.shadowMapWidth = 512;
+            light.shadowMapHeight = 512;
+
+            var d = 1000;
+
+            light.shadowCameraLeft = -d;
+            light.shadowCameraRight = d;
+            light.shadowCameraTop = d;
+            light.shadowCameraBottom = -d;
+
+            light.shadowCameraFar = camera.far;
+            light.shadowDarkness = 0.2;
+            light.position.set( -470, 400, -470 );
+            scene.add( light );
+
+            var light2 = new THREE.DirectionalLight( 0xffffff, 0 );
+            light2.castShadow = true;
+            // light2.shadowCameraVisible = true;
+
+            light2.shadowMapWidth = 512;
+            light2.shadowMapHeight = 512;
+
+            var d = 1000;
+
+            light2.shadowCameraLeft = -d;
+            light2.shadowCameraRight = d;
+            light2.shadowCameraTop = d;
+            light2.shadowCameraBottom = -d;
+
+            light2.shadowCameraFar = camera.far;
+            light2.shadowDarkness = 0.2;
+            light2.position.set( 470, 400, -470 );
+            scene.add( light2 );
+
+            var loader = new THREE.OBJMTLLoader();
+            var loader2 = new THREE.OBJLoader();
+            loader.load('Glasses.obj', 'Glasses.mtl', function(obj) {
+                glasses = obj;
+                obj.scale.set(10,10,10);
+                obj.traverse( function ( child ) {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                scene.add(obj);
+                moveGlasses();
+            });
+            loader.load('Nightstand.obj', 'Nightstand.mtl', function(obj) {
+                obj.scale.set(300,300,300);
+                obj.position.set(350,63,-520);
+                obj.traverse( function ( child ) {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                scene.add(obj);
+                var obj2 = obj.clone();
+                obj2.position.set(-350,63,-520);
+                scene.add(obj2);
+            });
+
+            loader.load('bed/bed.obj', 'bed/bed.mtl', function(obj) {
+                obj.scale.set(8,8,8);
+                obj.position.set(0,0,-250);
+                obj.traverse( function ( child ) {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                scene.add(obj);
+            });
+
+            loader.load('chair/Armchair Blue by Dzybri.obj', 'chair/Armchair Blue by Dzybri.mtl', function(obj) {
+                obj.scale.set(2.5,2.5,2.5);
+                obj.rotation.y = Math.PI;
+                obj.position.set(0,0,450);
+                obj.traverse( function ( child ) {
+                    if (child instanceof THREE.Mesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                scene.add(obj);
+            });
+
+            loader.load('lamp/lamp.obj', 'lamp/lamp.mtl', function(obj) {
+                obj.scale.set(0.25,0.25,0.25);
+                obj.position.set(-470,0,-470);
+                var obj2 = obj.clone();
+                obj2.position.x = 470;
+                scene.add(obj);
+                scene.add(obj2);
+            });
+
+            loader2.load('door.obj', function(obj) {
+                obj.scale.set(0.31,0.31,0.31);
+                obj.position.set(-600,0,0);
+                scene.add(obj);
+            });
+
+            var geometryBottom = new THREE.PlaneGeometry(1200,1200);
+            var texture = THREE.ImageUtils.loadTexture(  "carpet.jpg" );
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set( 5, 5 );
+            var material = new THREE.MeshPhongMaterial( { map: texture, shininess: 0 } );
+
+            var meshBottom = new THREE.Mesh( geometryBottom, material );
+            meshBottom.rotation.x = -Math.PI/2;
+            meshBottom.receiveShadow = true;
+            meshBottom.castShadow = true;
+            scene.add( meshBottom );
+
+            var geometryWall = new THREE.PlaneGeometry(1200,800);
+            var texture2 = THREE.ImageUtils.loadTexture(  "wallpaper.jpg" );
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set( 12, 8 );
+            var material2 = new THREE.MeshPhongMaterial( { map: texture2, shininess: 0 } );
+
+            var meshWallBack = new THREE.Mesh( geometryWall, material2 );
+            meshWallBack.position.z = -600;
+            meshWallBack.position.y = 400;
+            meshWallBack.receiveShadow = true;
+            scene.add( meshWallBack );
+
+            var meshWallFront = new THREE.Mesh( geometryWall, material2 );
+            meshWallFront.rotation.y = Math.PI;
+            meshWallFront.position.z = 600;
+            meshWallFront.position.y = 400;
+            meshWallFront.receiveShadow = true;
+            scene.add( meshWallFront );
+
+            var meshWallLeft = new THREE.Mesh( geometryWall, material2 );
+            meshWallLeft.rotation.y = Math.PI/2;
+            meshWallLeft.position.x = -600;
+            meshWallLeft.position.y = 400;
+            meshWallLeft.receiveShadow = true;
+            scene.add( meshWallLeft );
+
+            var meshWallRight = new THREE.Mesh( geometryWall, material2 );
+            meshWallRight.rotation.y = -Math.PI/2;
+            meshWallRight.position.x = 600;
+            meshWallRight.position.y = 400;
+            meshWallRight.receiveShadow = true;
+            scene.add( meshWallRight );
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.shadowMapEnabled = true;
+            renderer.shadowMapType = THREE.PCFSoftShadowMap;
+            renderer.setClearColor( 0x555555 );
+            renderer.physicallyBasedShading = true;
+            renderer.setSize( window.innerWidth, window.innerHeight );
+
+            document.body.appendChild( renderer.domElement );
+
+            window.addEventListener( 'resize', onWindowResize, false );
+
+            function moveGlasses() {
+                if (glasses) {
+                    var rand = Math.floor(Math.random()*locations.length);
+                    while (rand == oldSpot) {
+                        rand = Math.floor(Math.random()*locations.length);
+                    }
+                    var pos = locations[rand].position;
+                    var rot = locations[rand].rotation;
+                    glasses.position.set(pos[0], pos[1], pos[2]);
+                    glasses.rotation.set(rot[0], rot[1], rot[2]);
+                    oldSpot = rand;
+                }
+            }
+
+            window.addEventListener('click', function(event) {
+                var mouse3D = new THREE.Vector3();
+                mouse3D.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse3D.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                mouse3D.z = 0.5;
+                projector.unprojectVector(mouse3D, camera);
+                var raycaster = new THREE.Raycaster(camera.position, mouse3D.sub(camera.position).normalize());
+                if (glasses) {
+                    var intersects = raycaster.intersectObjects([glasses], true);
+                    if (intersects.length > 0) {
+                        alert('YOU FOUND THEM!!!');
+                        moveGlasses();
+                    }
+                }
+            }, false);
+        }
+
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize( window.innerWidth, window.innerHeight );
+
+        }
+
+        function animate() {
+
+            // note: three.js includes requestAnimationFrame shim
+            requestAnimationFrame( animate );
+
+            controls.update();
+
+            renderer.render( scene, camera );
+
+            time = Date.now();
+
+        }
+
+    </script>
+</body>
+</html>
