@@ -15,10 +15,24 @@
             overflow: hidden;
             font-family: arial;
         }
+
+        .overlay {
+            position: absolute;
+            width: 300px;
+            color: #eee;
+            top: 10px;
+            left: 10px;
+            background-color: #555;
+            border-radius: 8px;
+            padding: 10px;
+        }
    </style>
 </head>
 
 <body>
+    <div class="overlay">
+        Find the glasses and click them to win! Who knows where they'll be next!
+    </div>
     <script src="three.min.js"></script>
     <script src="BinaryLoader.js"></script>
     <script src="MTLLoader.js"></script>
@@ -46,6 +60,10 @@
             {
                 position: [150, 144, 510],
                 rotation: [0.2,0,-0.5]
+            },
+            {
+                position: [0, 0, -150],
+                rotation: [0,0,0]
             }
         ]
 
